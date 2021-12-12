@@ -49,13 +49,21 @@ export function proxy (target: Object, sourceKey: string, key: string) {
 export function initState (vm: Component) {
   vm._watchers = []
   const opts = vm.$options
+  // 处理 props 对象，为 props 对象的每个属性设置响应式，并将其代理到 vm 实例上
   if (opts.props) initProps(vm, opts.props)
+  //  1、校验 methoss[key]，必须是一个函数
+  // 2、判重 methods 中的 key 不能和 props 中的 key 相同
+  // methos 中的 key 与 Vue 实例上已有的方法重叠，一般是一些内置方法，比如以 $ 和 _ 开头的方法
+  // 3、将 methods[key] 放到 vm 实例上，得到 vm[key] = methods[key]
   if (opts.methods) initMethods(vm, opts.methods)
   if (opts.data) {
     initData(vm)
   } else {
     observe(vm._data = {}, true /* asRootData */)
   }
+  // 1、为 computed[key] 创建 watcher 实例，默认是懒执行
+  // 2、代理 computed[key] 到 vm 实例
+  // 3、判重，computed 中的 key 不能和 data、props 中的属性重复
   if (opts.computed) initComputed(vm, opts.computed)
   if (opts.watch && opts.watch !== nativeWatch) {
     initWatch(vm, opts.watch)
@@ -63,18 +71,25 @@ export function initState (vm: Component) {
 }
 
 function initProps (vm: Component, propsOptions: Object) {
+  console.log(vm, propsOptions);
   const propsData = vm.$options.propsData || {}
   const props = vm._props = {}
   // cache prop keys so that future props updates can iterate using Array
   // instead of dynamic object key enumeration.
+
+  // 缓存 props 的每个 key，性能优化
   const keys = vm.$options._propKeys = []
   const isRoot = !vm.$parent
   // root instance props should be converted
   if (!isRoot) {
     toggleObserving(false)
   }
+
+    // 遍历 props 对象
   for (const key in propsOptions) {
+    // 缓存 key
     keys.push(key)
+     // 获取 props[key] 的默认值
     const value = validateProp(key, propsOptions, propsData, vm)
     /* istanbul ignore else */
     if (process.env.NODE_ENV !== 'production') {
@@ -98,11 +113,14 @@ function initProps (vm: Component, propsOptions: Object) {
         }
       })
     } else {
+      // 对props做响应式处理
       defineReactive(props, key, value)
     }
     // static props are already proxied on the component's prototype
     // during Vue.extend(). We only need to proxy props defined at
     // instantiation here.
+
+    // 遍历key，代理到vue实例上，可以 this.propskey方式访问数据
     if (!(key in vm)) {
       proxy(vm, `_props`, key)
     }
@@ -112,6 +130,7 @@ function initProps (vm: Component, propsOptions: Object) {
 
 function initData (vm: Component) {
   let data = vm.$options.data
+  // 保证data是一个对象
   data = vm._data = typeof data === 'function'
     ? getData(data, vm)
     : data || {}
@@ -129,6 +148,7 @@ function initData (vm: Component) {
   const methods = vm.$options.methods
   let i = keys.length
   while (i--) {
+    // 判重处理
     const key = keys[i]
     if (process.env.NODE_ENV !== 'production') {
       if (methods && hasOwn(methods, key)) {
@@ -145,10 +165,12 @@ function initData (vm: Component) {
         vm
       )
     } else if (!isReserved(key)) {
+      // 代理到vue实例上， this.data
       proxy(vm, `_data`, key)
     }
   }
   // observe data
+  // 响应式处理
   observe(data, true /* asRootData */)
 }
 
@@ -245,6 +267,7 @@ function createComputedGetter (key) {
   return function computedGetter () {
     const watcher = this._computedWatchers && this._computedWatchers[key]
     if (watcher) {
+      // computer实现缓存的原理，因为执行watcher.evaluate()时把watcher.dirty置为false，等下一次数据更新的时候在update里，watcher.dirty才重新置为true
       if (watcher.dirty) {
         watcher.evaluate()
       }
@@ -264,6 +287,7 @@ function createGetterInvoker(fn) {
 
 function initMethods (vm: Component, methods: Object) {
   const props = vm.$options.props
+  // 遍历 methods 对象， methods中的key与不能与props中重复
   for (const key in methods) {
     if (process.env.NODE_ENV !== 'production') {
       if (typeof methods[key] !== 'function') {
@@ -286,6 +310,7 @@ function initMethods (vm: Component, methods: Object) {
         )
       }
     }
+    // 将methods上的所有方法赋值到vue实例上
     vm[key] = typeof methods[key] !== 'function' ? noop : bind(methods[key], vm)
   }
 }
@@ -293,6 +318,7 @@ function initMethods (vm: Component, methods: Object) {
 function initWatch (vm: Component, watch: Object) {
   for (const key in watch) {
     const handler = watch[key]
+    console.log(key,handler);
     if (Array.isArray(handler)) {
       for (let i = 0; i < handler.length; i++) {
         createWatcher(vm, key, handler[i])

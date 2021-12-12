@@ -7,7 +7,6 @@ import { def } from '../util/index'
 
 const arrayProto = Array.prototype
 export const arrayMethods = Object.create(arrayProto)
-
 const methodsToPatch = [
   'push',
   'pop',
@@ -25,7 +24,9 @@ methodsToPatch.forEach(function (method) {
   // cache original method
   const original = arrayProto[method]
   def(arrayMethods, method, function mutator (...args) {
+    console.log('args', args, original);
     const result = original.apply(this, args)
+    console.log(result);
     const ob = this.__ob__
     let inserted
     switch (method) {

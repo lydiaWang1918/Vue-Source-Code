@@ -104,6 +104,9 @@ export default class Watcher {
     let value
     const vm = this.vm
     try {
+      // 执行 this.getter，并重新收集依赖
+      // this.getter 是实例化 watcher 时传递的第二个参数，一个函数或者字符串
+      // 重新收集依赖，因为触发更新说明有响应式数据被更新了，但是被更新的数据虽然已经经过 observe 观察了，但是却没有进行依赖收集，在更新页面时，会重新执行一次 render 函数，执行期间会触发读取操作，进行依赖收集
       value = this.getter.call(vm, vm)
     } catch (e) {
       if (this.user) {
@@ -126,12 +129,16 @@ export default class Watcher {
   /**
    * Add a dependency to this directive.
    */
+  // 1、添加 dep 给自己（watcher）
+  // 2、添加自己（watcher）到 dep
   addDep (dep: Dep) {
     const id = dep.id
     if (!this.newDepIds.has(id)) {
       this.newDepIds.add(id)
       this.newDeps.push(dep)
+      // 避免在 dep 中重复添加 watcher，this.depIds 的设置在 cleanupDeps 方法中
       if (!this.depIds.has(id)) {
+         // 添加 watcher 自己到 dep
         dep.addSub(this)
       }
     }
@@ -165,17 +172,23 @@ export default class Watcher {
   update () {
     /* istanbul ignore else */
     if (this.lazy) {
+      // 懒执行时走这里，比如 computed
+      // 将 dirty 置为 true，可以让 computedGetter 执行时重新计算 computed 回调函数的执行结果
       this.dirty = true
     } else if (this.sync) {
+      // 同步执行，使用 vm.$watch 或者 watch 选项时可以传一个 sync 选项，为true时不走异步更新队列
       this.run()
     } else {
+      // 异步更新，将watcher放入watcher队列
       queueWatcher(this)
     }
   }
 
   /**
-   * Scheduler job interface.
-   * Will be called by the scheduler.
+   * 由 刷新队列函数 flushSchedulerQueue 调用，如果是同步 watch，则由 this.update 直接调用，完成如下几件事：
+   * 1、执行实例化 watcher 传递的第二个参数，updateComponent 或者 获取 this.xx 的一个函数(parsePath 返回的函数)
+   * 2、更新旧值为新值
+   * 3、执行实例化 watcher 时传递的第三个参数，比如用户 watcher 的回调函数
    */
   run () {
     if (this.active) {
@@ -192,9 +205,11 @@ export default class Watcher {
         const oldValue = this.value
         this.value = value
         if (this.user) {
+          // 如果是用户 watcher，则执行用户传递的第三个参数 —— 回调函数，参数为 val 和 oldVal
           const info = `callback for watcher "${this.expression}"`
           invokeWithErrorHandling(this.cb, this.vm, [value, oldValue], this.vm, info)
         } else {
+          // 渲染 watcher，this.cb = noop，一个空函数
           this.cb.call(this.vm, value, oldValue)
         }
       }
@@ -205,6 +220,8 @@ export default class Watcher {
    * Evaluate the value of the watcher.
    * This only gets called for lazy watchers.
    */
+  // 懒执行的 watcher 会调用该方法
+  // 比如：computed，在获取 vm.computedProperty 的值时会调用该方法
   evaluate () {
     this.value = this.get()
     this.dirty = false

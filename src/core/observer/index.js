@@ -43,8 +43,11 @@ export class Observer {
     this.value = value
     this.dep = new Dep()
     this.vmCount = 0
-    def(value, '__ob__', this)
+    def(value, '__ob__', this) // 将__ob_写到value对象上，值为this
     if (Array.isArray(value)) {
+      // hasProto = '__proto__' in {} 
+      // 用于判断对象是否存在 __proto__ 属性，通过 obj.__proto__ 可以访问对象的原型链，操作数组的原型链重写数组的七个原型方法，实现响应式
+      // __proto__ 不是标准属性，有些浏览器不支持，所有分两种情况处理
       if (hasProto) {
         protoAugment(value, arrayMethods)
       } else {
@@ -142,6 +145,7 @@ export function defineReactive (
   const dep = new Dep()
 
   const property = Object.getOwnPropertyDescriptor(obj, key)
+  // 获取 obj[key] 的属性描述符，发现它是不可配置对象的话直接 return
   if (property && property.configurable === false) {
     return
   }
@@ -152,7 +156,7 @@ export function defineReactive (
   if ((!getter || setter) && arguments.length === 2) {
     val = obj[key]
   }
-
+  // 递归调用，处理 val 即 obj[key] 的值为对象的情况，保证对象中的所有 key 都被观察
   let childOb = !shallow && observe(val)
   Object.defineProperty(obj, key, {
     enumerable: true,
@@ -187,6 +191,8 @@ export function defineReactive (
       } else {
         val = newVal
       }
+
+      // 对新值进行观察，让新值也是响应式的
       childOb = !shallow && observe(newVal)
       dep.notify()
     }
