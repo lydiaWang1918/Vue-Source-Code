@@ -199,17 +199,20 @@ export function defineReactive (
   })
 }
 
+
 /**
- * Set a property on an object. Adds the new property and
- * triggers change notification if the property doesn't
- * already exist.
+ * 通过 Vue.set 或者 this.$set 方法给 target 的指定 key 设置值 val
+ * 如果 target 是对象，并且 key 原本不存在，则为新 key 设置响应式，然后执行依赖通知
  */
 export function set (target: Array<any> | Object, key: any, val: any): any {
+  console.log(target, 'target');
   if (process.env.NODE_ENV !== 'production' &&
     (isUndef(target) || isPrimitive(target))
   ) {
     warn(`Cannot set reactive property on undefined, null, or primitive value: ${(target: any)}`)
   }
+
+  // 更新数组指定下标的元素，Vue.set(array, idx, val)，通过 splice 方法实现响应式更新
   if (Array.isArray(target) && isValidArrayIndex(key)) {
     target.length = Math.max(target.length, key)
     target.splice(key, 1, val)
