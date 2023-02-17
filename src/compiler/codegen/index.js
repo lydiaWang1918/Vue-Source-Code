@@ -46,9 +46,13 @@ export function generate (
 ): CodegenResult {
   const state = new CodegenState(options)
   // fix #11483, Root level <script> tags should not be rendered.
+
+  // 核心部分，生成render表达式字符串主体
   const code = ast ? (ast.tag === 'script' ? 'null' : genElement(ast, state)) : '_c("div")'
   return {
+    // 最外层用with(this)包裹
     render: `with(this){return ${code}}`,
+    // 被标记为 staticRoot 节点的 VNode 就会单独生成 staticRenderFns
     staticRenderFns: state.staticRenderFns
   }
 }
@@ -92,6 +96,7 @@ export function genElement (el: ASTElement, state: CodegenState): string {
     for (let i = 0; i < state.transforms.length; i++) {
       code = state.transforms[i](el, code)
     }
+    console.log(code,typeof(code), 'code');
     return code
   }
 }

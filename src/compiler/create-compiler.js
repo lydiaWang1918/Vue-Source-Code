@@ -17,7 +17,7 @@ export function createCompilerCreator (baseCompile: Function): Function {
       let warn = (msg, range, tip) => {
         (tip ? tips : errors).push(msg)
       }
-
+      // 合并options和baseOptions，将两者合并到finalOptions对象上
       if (options) {
         if (process.env.NODE_ENV !== 'production' && options.outputSourceRange) {
           // $flow-disable-line
@@ -57,7 +57,7 @@ export function createCompilerCreator (baseCompile: Function): Function {
       }
 
       finalOptions.warn = warn
-
+      // 执行basecompile，得到编译结果
       const compiled = baseCompile(template.trim(), finalOptions)
       if (process.env.NODE_ENV !== 'production') {
         detectErrors(compiled.ast, warn)

@@ -9,8 +9,9 @@
 <body>
   <div id="app">
     <!-- <button id="btn">shift</button> -->
-    <p>{{msg.a}}</p>
-    <comp content="Vue是前端框架"></comp>
+    <p class="msg text">{{msg.a}}</p>
+    <div v-for="(item, index) in 3" :key="index">{{ index }}</div>
+    <!-- <comp content="Vue是前端框架"></comp> -->
   </div>
   <script src="../../dist/vue.js"></script>
   <script>
@@ -33,6 +34,9 @@
         msg(newVal){
           console.log(newVal);
         }
+      },
+      methods:{
+        
       }
     })
     window.onload=()=>{

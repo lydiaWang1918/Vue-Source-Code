@@ -23,6 +23,14 @@ import {
   createASTElement
 } from 'compiler/parser/index'
 
+
+/**
+ * 处理存在 v-model 的 input 标签，但没处理 v-model 属性
+ * 分别处理了 input 为 checkbox、radio 和 其它的情况
+ * input 具体是哪种情况由 el.ifConditions 中的条件来判断
+ * <input v-mode="test" :type="checkbox or radio or other(比如 text)" />
+ */
+
 function preTransformNode (el: ASTElement, options: CompilerOptions) {
   if (el.tag === 'input') {
     const map = el.attrsMap

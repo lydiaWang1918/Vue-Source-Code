@@ -98,6 +98,19 @@ const componentVNodeHooks = {
 
 const hooksToMerge = Object.keys(componentVNodeHooks)
 
+/**
+ * 创建组件的 VNode，
+ *   1、函数式组件通过执行其 render 方法生成组件的 VNode
+ *   2、普通组件通过 new VNode() 生成其 VNode，但是普通组件有一个重要操作是在 data.hook 对象上设置了四个钩子函数，
+ *      分别是 init、prepatch、insert、destroy，在组件的 patch 阶段会被调用，
+ *      比如 init 方法，调用时会进入子组件实例的创建挂载阶段，直到完成渲染
+ * @param {*} Ctor 组件构造函数
+ * @param {*} data 属性组成的 JSON 字符串
+ * @param {*} context 上下文
+ * @param {*} children 子节点数组
+ * @param {*} tag 标签名
+ * @returns VNode or Array<VNode>
+ */
 export function createComponent (
   Ctor: Class<Component> | Function | Object | void,
   data: ?VNodeData,
@@ -159,7 +172,15 @@ export function createComponent (
   const propsData = extractPropsFromVNodeData(data, Ctor, tag)
 
   // functional component
+
+  // 函数式组件
   if (isTrue(Ctor.options.functional)) {
+     /**
+     * 执行函数式组件的 render 函数生成组件的 VNode，做了以下 3 件事：
+     *   1、设置组件的 props 对象
+     *   2、设置函数式组件的渲染上下文，传递给函数式组件的 render 函数
+     *   3、调用函数式组件的 render 函数生成 vnode
+     */
     return createFunctionalComponent(Ctor, propsData, data, context, children)
   }
 
@@ -183,6 +204,14 @@ export function createComponent (
   }
 
   // install component management hooks onto the placeholder node
+
+  /**
+   * 在组件的 data 对象上设置 hook 对象，
+   * hook 对象增加四个属性，init、prepatch、insert、destroy，
+   * 负责组件的创建、更新、销毁，这些方法在组件的 patch 阶段会被调用
+   * install component management hooks onto the placeholder node
+   */
+
   installComponentHooks(data)
 
   // return a placeholder vnode

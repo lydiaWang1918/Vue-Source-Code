@@ -14,13 +14,21 @@ import { isUnaryTag, canBeLeftOpenTag } from './util'
 
 export const baseOptions: CompilerOptions = {
   expectHTML: true,
+  // 负责编译class、style、v-model
   modules,
   directives,
+  // pre标签
   isPreTag,
+  // 是否为一元标签
   isUnaryTag,
+  // 一些必须用于props的属性
   mustUseProp,
+  // 只有开始标签的标签
   canBeLeftOpenTag,
+  // 保留标签
   isReservedTag,
+  // 命名空间
   getTagNamespace,
+  // 静态key
   staticKeys: genStaticKeys(modules)
 }

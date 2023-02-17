@@ -80,28 +80,39 @@ export function parse (
   template: string,
   options: CompilerOptions
 ): ASTElement | void {
+
   warn = options.warn || baseWarn
 
   platformIsPreTag = options.isPreTag || no
   platformMustUseProp = options.mustUseProp || no
   platformGetTagNamespace = options.getTagNamespace || no
   const isReservedTag = options.isReservedTag || no
+
+  // 判断一个元素是否为一个组件
   maybeComponent = (el: ASTElement) => !!(
     el.component ||
     el.attrsMap[':is'] ||
     el.attrsMap['v-bind:is'] ||
     !(el.attrsMap.is ? isReservedTag(el.attrsMap.is) : isReservedTag(el.tag))
   )
+
+  // 分别获取 options.modules 下的 class、model、style 三个模块中的 transformNode、preTransformNode、postTransformNode 方法
+  // 负责处理元素节点上的 class、style、v-model
   transforms = pluckModuleFunction(options.modules, 'transformNode')
   preTransforms = pluckModuleFunction(options.modules, 'preTransformNode')
   postTransforms = pluckModuleFunction(options.modules, 'postTransformNode')
 
+  // 界定符，比如: {{}}
   delimiters = options.delimiters
 
+  // 解析的中间结果都存放再这里
   const stack = []
   const preserveWhitespace = options.preserveWhitespace !== false
   const whitespaceOption = options.whitespace
+
+  // 根节点，以 root 为根，处理后的节点都会按照层级挂载到 root 下，最后 return 的就是 root，一个 ast 语法树
   let root
+  // 记录当前元素的父元素
   let currentParent
   let inVPre = false
   let inPre = false
@@ -205,6 +216,9 @@ export function parse (
     }
   }
 
+  // 解析 html 模版字符串，处理所有标签以及标签上的属性
+  // 这里的 parseHTMLOptions 在后面处理过程中用到，再进一步解析
+  // 定义如何处理开始标签、结束标签、文本节点和注释节点。
   parseHTML(template, {
     warn,
     expectHTML: options.expectHTML,
@@ -214,9 +228,20 @@ export function parse (
     shouldDecodeNewlinesForHref: options.shouldDecodeNewlinesForHref,
     shouldKeepComment: options.comments,
     outputSourceRange: options.outputSourceRange,
+    /**
+       * 调用 start 方法，主要做了以下 6 件事情:
+       *   1、创建 AST 对象
+       *   2、处理存在 v-model 指令的 input 标签，分别处理 input 为 checkbox、radio、其它的情况
+       *   3、处理标签上的众多指令，比如 v-pre、v-for、v-if、v-once
+       *   4、如果根节点 root 不存在则设置当前元素为根节点
+       *   5、如果当前元素为非自闭合标签则将自己 push 到 stack 数组，并记录 currentParent，在接下来处理子元素时用来告诉子元素自己的父节点是谁
+       *   6、如果当前元素为自闭合标签，则表示该标签要处理结束了，让自己和父元素产生关系，以及设置自己的子元素
+       */
     start (tag, attrs, unary, start, end) {
       // check namespace.
       // inherit parent ns if there is one
+
+      // 检查命名空间，如果存在，则继承父命名空间
       const ns = (currentParent && currentParent.ns) || platformGetTagNamespace(tag)
 
       // handle IE svg bug
@@ -225,6 +250,7 @@ export function parse (
         attrs = guardIESVGBug(attrs)
       }
 
+      // 创建当前标签的 AST 对象
       let element: ASTElement = createASTElement(tag, attrs, currentParent)
       if (ns) {
         element.ns = ns
@@ -383,6 +409,8 @@ export function parse (
         }
       }
     },
+
+    // 处理注释内容
     comment (text: string, start, end) {
       // adding anything as a sibling to the root node is forbidden
       // comments should still be allowed, but ignored
@@ -400,6 +428,7 @@ export function parse (
       }
     }
   })
+  console.log(root, 'root');
   return root
 }
 

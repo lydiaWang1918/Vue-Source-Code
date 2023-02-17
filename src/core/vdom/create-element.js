@@ -41,9 +41,24 @@ export function createElement (
   if (isTrue(alwaysNormalize)) {
     normalizationType = ALWAYS_NORMALIZE
   }
+  // 执行 _createElement 方法创建组件的 VNode
   return _createElement(context, tag, data, children, normalizationType)
 }
 
+/**
+ * 生成 vnode，
+ *   1、平台保留标签和未知元素执行 new Vnode() 生成 vnode
+ *   2、组件执行 createComponent 生成 vnode
+ *     2.1 函数式组件执行自己的 render 函数生成 VNode
+ *     2.2 普通组件则实例化一个 VNode，并且在其 data.hook 对象上设置 4 个方法，在组件的 patch 阶段会被调用，
+ *         从而进入子组件的实例化、挂载阶段，直至完成渲染
+ * @param {*} context 上下文
+ * @param {*} tag 标签
+ * @param {*} data 属性 JSON 字符串
+ * @param {*} children 子节点数组
+ * @param {*} normalizationType 节点规范化类型
+ * @returns VNode or Array<VNode>
+ */
 export function _createElement (
   context: Component,
   tag?: string | Class<Component> | Function | Object,
@@ -92,11 +107,22 @@ export function _createElement (
   } else if (normalizationType === SIMPLE_NORMALIZE) {
     children = simpleNormalizeChildren(children)
   }
+
+  // 这里开始才是重点，前面的都不需要关注，基本上是一些异常处理或者优化等
+
   let vnode, ns
   if (typeof tag === 'string') {
+
+    // 标签是字符串时，该标签有三种可能：
+    //   1、平台保留标签
+    //   2、自定义组件
+    //   3、不知名标签
+
     let Ctor
     ns = (context.$vnode && context.$vnode.ns) || config.getTagNamespace(tag)
     if (config.isReservedTag(tag)) {
+      // tag 是平台原生标签
+
       // platform built-in elements
       if (process.env.NODE_ENV !== 'production' && isDef(data) && isDef(data.nativeOn) && data.tag !== 'component') {
         warn(
@@ -104,17 +130,22 @@ export function _createElement (
           context
         )
       }
+       // 实例化一个 VNode
       vnode = new VNode(
         config.parsePlatformTagName(tag), data, children,
         undefined, undefined, context
       )
     } else if ((!data || !data.pre) && isDef(Ctor = resolveAsset(context.$options, 'components', tag))) {
       // component
+      // tag 是一个自定义组件
+      // 在 this.$options.components 对象中找到指定标签名称的组件构造函数
       vnode = createComponent(Ctor, data, context, children, tag)
     } else {
       // unknown or unlisted namespaced elements
       // check at runtime because it may get assigned a namespace when its
       // parent normalizes children
+
+      // 不知名的一个标签，但也生成 VNode，因为考虑到在运行时可能会给一个合适的名字空间
       vnode = new VNode(
         tag, data, children,
         undefined, undefined, context
@@ -122,8 +153,12 @@ export function _createElement (
     }
   } else {
     // direct component options / constructor
+
+    // tag 为非字符串，比如可能是一个组件的配置对象或者是一个组件的构造函数
     vnode = createComponent(tag, data, context, children)
   }
+
+   // 返回组件的 VNode
   if (Array.isArray(vnode)) {
     return vnode
   } else if (isDef(vnode)) {
